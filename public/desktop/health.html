@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Health</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #101a15;
+      --coral: #ff5a45;
+      --page: #0a0a0c;
+      --muted: #6b7280;
+      --line: rgba(0, 0, 0, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+    .mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      background: var(--coral);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .brand strong { font-size: 15px; font-weight: 600; }
+    nav {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+    }
+    nav a {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.5);
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    nav a.on { background: var(--coral); color: #fff; }
+    main {
+      min-height: calc(100vh - 64px);
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px 56px;
+    }
+    .card {
+      width: min(980px, 100%);
+      overflow: hidden;
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      align-self: flex-start;
+    }
+    .panel { background: #fff; padding: 36px 48px 32px; }
+    .center { text-align: center; }
+    .eyebrow { margin: 0; color: #9ca3af; font-size: 13px; font-weight: 500; }
+    h1 { margin: 4px 0 0; font-size: 28px; letter-spacing: -0.03em; }
+    .percent { margin: 12px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em; }
+    .caption { margin: 0; color: #9ca3af; font-size: 13px; font-weight: 500; }
+    .summary { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+    .problem { margin: 16px 0 0; color: var(--coral); font-size: 13px; }
+    ul.roster { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 12px; }
+    ul.roster li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #f6f7f9;
+      border-radius: 16px;
+      padding: 12px 16px;
+    }
+    .name { margin: 0; font-size: 14px; font-weight: 600; }
+    .meta { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .when { margin: 4px 0 0; color: var(--muted); font-size: 11px; text-align: right; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #d1d5db; }
+    .dot.on { background: #22c55e; }
+    .side { flex: none; text-align: right; }
+    .coral-bar {
+      background: var(--coral);
+      padding: 20px 48px;
+      text-align: center;
+      color: #0d2318;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    @media (max-width: 720px) {
+      nav { display: none; }
+      .panel, .coral-bar { padding-left: 22px; padding-right: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/setup--download">
+      <span class="mark">N</span>
+      <strong>Nexus</strong>
+    </a>
+    <nav>
+      <a href="/setup">Setup</a>
+      <a href="/manual">Manual</a>
+      <a href="/setup--download">Download</a>
+      <a class="on" href="/health">Health</a>
+    </nav>
+  </header>
+  <main>
+    <section class="card">
+      <div class="panel">
+        <div class="center">
+          <p class="eyebrow">Live from each install</p>
+          <h1>HEALTH</h1>
+          <p class="percent" id="percent">0%</p>
+          <p class="caption">successful installations</p>
+          <p class="summary" id="summary">Waiting for a desktop app to check in</p>
+          <p class="problem" id="problem" hidden></p>
+        </div>
+        <ul class="roster" id="roster"></ul>
+      </div>
+      <div class="coral-bar">
+        Each open desktop app reports itself about every 30 seconds. A computer drops offline after it stops.
+      </div>
+    </section>
+  </main>
+  <script>
+    const ENGINE = "https://weott-proposal-engine.onrender.com";
+    let installs = [];
+    let now = Date.now();
+
+    function ageLabel(iso) {
+      const then = new Date(iso).getTime();
+      if (!iso || Number.isNaN(then)) return "no pulse yet";
+      const seconds = Math.max(0, Math.round((now - then) / 1000));
+      if (seconds < 10) return "just now";
+      if (seconds < 60) return seconds + "s ago";
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 60) return minutes + "m ago";
+      return Math.round(minutes / 60) + "h ago";
+    }
+
+    function render() {
+      const online = installs.filter((item) => item.online).length;
+      document.getElementById("summary").textContent = installs.length === 0
+        ? "Waiting for a desktop app to check in"
+        : online + " online · " + installs.length + " computer" + (installs.length === 1 ? "" : "s");
+      const list = document.getElementById("roster");
+      list.replaceChildren();
+      for (const item of installs) {
+        const li = document.createElement("li");
+        const copy = document.createElement("div");
+        const name = document.createElement("p");
+        name.className = "name";
+        name.textContent = item.computerName || "This computer";
+        const meta = document.createElement("p");
+        meta.className = "meta";
+        meta.textContent = [
+          item.platform,
+          item.appVersion,
+          (item.syncPercent || 0) + "% synced",
+          (item.quoteCount || 0) + " quotes",
+          (item.proposalCount || 0) + " proposals",
+          item.status
+        ].filter(Boolean).join(" · ");
+        copy.append(name, meta);
+        const side = document.createElement("div");
+        side.className = "side";
+        const dot = document.createElement("span");
+        dot.className = "dot" + (item.online ? " on" : "");
+        const when = document.createElement("p");
+        when.className = "when";
+        when.textContent = ageLabel(item.lastSeen);
+        side.append(dot, when);
+        li.append(copy, side);
+        list.append(li);
+      }
+    }
+
+    async function load() {
+      const problem = document.getElementById("problem");
+      try {
+        const res = await fetch(ENGINE + "/desktop/fleet");
+        if (!res.ok) throw new Error("fleet");
+        const body = await res.json();
+        const rows = Array.isArray(body.installs) ? body.installs.slice() : [];
+        rows.sort((a, b) => Number(b.online) - Number(a.online) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
+        const computed = rows.length
+          ? Math.round((100 * rows.filter((row) => row.syncComplete || (row.syncPercent || 0) >= 100).length) / rows.length)
+          : 0;
+        const reported = typeof body.successPercent === "number" ? body.successPercent : 0;
+        installs = rows;
+        document.getElementById("percent").textContent = Math.max(reported, computed) + "%";
+        problem.hidden = true;
+        render();
+      } catch (err) {
+        problem.hidden = false;
+        problem.textContent = "The live roster is not reachable yet.";
+      }
+    }
+
+    load();
+    setInterval(load, 5000);
+    setInterval(() => { now = Date.now(); render(); }, 1000);
+  </script>
+</body>
+</html>

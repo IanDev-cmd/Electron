@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #101a15;
+      --coral: #ff5a45;
+      --page: #0a0a0c;
+      --muted: #6b7280;
+      --line: rgba(0, 0, 0, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      background: var(--coral);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .brand strong { font-size: 15px; font-weight: 600; }
+    nav {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+    }
+    nav a {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.5);
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    nav a.on { background: var(--coral); color: #fff; }
+    main {
+      width: min(980px, calc(100% - 32px));
+      margin: 40px auto 56px;
+      display: grid;
+      gap: 22px;
+    }
+    .card {
+      overflow: hidden;
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+    .panel { background: #fff; padding: 36px 48px 40px; }
+    .eyebrow {
+      margin: 0;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    h1 {
+      margin: 4px 0 0;
+      text-align: center;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+    }
+    ol { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 18px; }
+    li { display: grid; grid-template-columns: 36px 1fr; gap: 14px; align-items: start; }
+    .n {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: #f6f7f9;
+      color: var(--coral);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(255, 90, 69, 0.25);
+    }
+    h2 { margin: 0 0 4px; font-size: 16px; }
+    p { margin: 0; color: #4b5563; font-size: 14px; line-height: 1.55; }
+    code {
+      font-family: "Space Mono", ui-monospace, Consolas, monospace;
+      font-size: 12.5px;
+      color: var(--ink);
+      background: #f6f7f9;
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+    .coral {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      background: var(--coral);
+      padding: 28px 48px;
+    }
+    .coral ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .coral li {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #0d2318;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .tick {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #0d2318;
+      color: var(--coral);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .file {
+      align-self: center;
+      color: #0d2318;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .pin {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .pin i {
+      width: 42px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #f6f7f9;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      font-style: normal;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .split { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 28px; align-items: start; }
+    footer.note {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    @media (max-width: 720px) {
+      nav { display: none; }
+      .panel, .coral { padding: 28px 22px; }
+      .split { grid-template-columns: 1fr; }
+      .file { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="mark">N</span>
+      <strong>Nexus</strong>
+    </div>
+    <nav>
+      <a class="on" href="/setup">Setup</a>
+      <a href="/manual">Manual</a>
+      <a href="/setup--download">Download</a>
+      <a href="/health">Health</a>
+    </nav>
+  </header>
+  <main>
+    <section class="card">
+      <div class="panel">
+        <p class="eyebrow">Please follow</p>
+        <h1>SETUP</h1>
+        <ol>
+          <li>
+            <span class="n">1</span>
+            <div>
+              <h2>Run the installer</h2>
+              <p>Double-click <code>WEOTT-Quote-Builder-Setup.exe</code> in this folder. If Windows SmartScreen appears, choose More info, then Run anyway.</p>
+            </div>
+          </li>
+          <li>
+            <span class="n">2</span>
+            <div>
+              <h2>Let the install finish</h2>
+              <p>It is one click. There is no folder to choose. It installs for the Windows user who is signed in, and it adds a desktop shortcut and a Start menu shortcut named WEOTT Quote Builder.</p>
+            </div>
+          </li>
+          <li>
+            <span class="n">3</span>
+            <div>
+              <h2>Open the app and wait</h2>
+              <p>Open WEOTT Quote Builder. Leave the opening card on screen until the progress bar finishes and the card says Ready. The first open starts the proposal engine. On a new computer with internet, saved quotes and proposals are copied onto this PC once.</p>
+            </div>
+          </li>
+          <li>
+            <span class="n">4</span>
+            <div>
+              <h2>Sign in</h2>
+              <p>Enter the six-digit team PIN. A new install always uses the default below. The session stays in this window and signs out after two hours without mouse or keyboard activity.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+      <div class="coral">
+        <ul>
+          <li><span class="tick">✓</span> Windows 10 or 11, 64-bit</li>
+          <li><span class="tick">✓</span> One-click install for this user</li>
+          <li><span class="tick">✓</span> Desktop and Start menu shortcuts</li>
+          <li><span class="tick">✓</span> Quotes and proposals stay on this PC</li>
+        </ul>
+        <div class="file">WEOTT Quote Builder<br />Setup.exe</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="panel">
+        <p class="eyebrow">After the card says Ready</p>
+        <h1>SIGN IN</h1>
+        <div class="split">
+          <div>
+            <p>Type this PIN on a new install. It is not shown on the opening card.</p>
+            <div class="pin" aria-label="Default team PIN 945762">
+              <i>9</i><i>4</i><i>5</i><i>7</i><i>6</i><i>2</i>
+            </div>
+          </div>
+          <div>
+            <h2>Then pick a page</h2>
+            <p>Home opens Leads, Quote Builder, Saved Quotes, and Proposal Doc. Settings, at the top right, can export diagnostic logs.</p>
+          </div>
+        </div>
+        <ol>
+          <li>
+            <span class="n">↓</span>
+            <div>
+              <h2>Where this computer keeps the work</h2>
+              <p><code>%LOCALAPPDATA%\WEOTT\Nexus</code><br />Quotes and proposals are in <code>workspace.sqlite</code>. Logs are in the <code>logs</code> folder beside it. If the opening card stops on an error, close the app and open it again, then read the latest log there.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

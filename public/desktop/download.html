@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Download</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #101a15;
+      --coral: #ff5a45;
+      --page: #0a0a0c;
+      --muted: #6b7280;
+      --line: rgba(0, 0, 0, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+    .mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      background: var(--coral);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .brand strong { font-size: 15px; font-weight: 600; }
+    nav {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+    }
+    nav a {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.5);
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    nav a.on { background: var(--coral); color: #fff; }
+    main {
+      min-height: calc(100vh - 64px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .card {
+      width: min(980px, 100%);
+      overflow: hidden;
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+    .panel { background: #fff; padding: 36px 48px 40px; text-align: center; }
+    .eyebrow { margin: 0; color: #9ca3af; font-size: 13px; font-weight: 500; }
+    h1 { margin: 4px 0 0; font-size: 28px; letter-spacing: -0.03em; }
+    .detail { margin: 12px auto 0; max-width: 520px; color: var(--muted); font-size: 14px; }
+    .file {
+      margin: 32px auto 0;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      text-align: left;
+      background: #f6f7f9;
+      border-radius: 16px;
+      padding: 16px 20px;
+    }
+    .file strong { display: block; font-size: 13px; }
+    .file span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--coral); flex: none; }
+    .dot.ok { background: #22c55e; }
+    .actions { margin-top: 32px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn.coral { background: var(--coral); }
+    .btn.green { background: #16a34a; }
+    .btn.ink { background: var(--ink); }
+    .coral-bar { background: var(--coral); padding: 28px 48px; }
+    .coral-bar ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 40px;
+    }
+    .coral-bar li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0d2318;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .tick { font-weight: 700; }
+    @media (max-width: 720px) {
+      nav { display: none; }
+      .panel, .coral-bar { padding: 28px 22px; }
+      .coral-bar ul { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/setup--download">
+      <span class="mark">N</span>
+      <strong>Nexus</strong>
+    </a>
+    <nav>
+      <a href="/setup">Setup</a>
+      <a href="/manual">Manual</a>
+      <a class="on" href="/setup--download">Download</a>
+      <a href="/health">Health</a>
+    </nav>
+  </header>
+  <main>
+    <section class="card">
+      <div class="panel">
+        <p class="eyebrow">Please install</p>
+        <h1>DESKTOP</h1>
+        <p class="detail" id="detail">Checking the latest setup file</p>
+        <div class="file">
+          <div>
+            <strong id="fileName">WEOTT-Quote-Builder-Setup.exe</strong>
+            <span id="meta">Waiting for the release file</span>
+          </div>
+          <span class="dot" id="dot"></span>
+        </div>
+        <div class="actions">
+          <a class="btn green" id="download" href="/WEOTT-Quote-Builder-Setup.exe">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Download App
+          </a>
+          <a class="btn ink" href="/manual">
+            Open manual
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="coral-bar">
+        <ul>
+          <li><span class="tick">✓</span> Windows 10 or 11, 64-bit</li>
+          <li><span class="tick">✓</span> One-click install for this user</li>
+          <li><span class="tick">✓</span> Desktop and Start menu shortcuts</li>
+          <li><span class="tick">✓</span> Quotes stay on that computer</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+  <script>
+    const DOWNLOAD = "/WEOTT-Quote-Builder-Setup.exe";
+
+    function formatBytes(bytes) {
+      if (!bytes) return "";
+      const mb = bytes / (1024 * 1024);
+      return (mb >= 100 ? mb.toFixed(0) : mb.toFixed(1)) + " MB";
+    }
+
+    function formatWhen(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    function load() {
+      document.getElementById("download").href = DOWNLOAD;
+      document.getElementById("fileName").textContent = "WEOTT-Quote-Builder-Setup.exe";
+      document.getElementById("detail").textContent = "Windows setup file. No sign-in is required.";
+      document.getElementById("meta").textContent = "Ready to download";
+      document.getElementById("dot").classList.add("ok");
+    }
+
+    load();
+    setInterval(load, 8000);
+  </script>
+</body>
+</html>

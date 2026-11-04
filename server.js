@@ -133,6 +133,19 @@ app.use(express.json({ limit: '10kb' }));
 app.get(['/test', '/test/'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'test', 'index.html'));
 });
+const desktopPage = path.join(__dirname, 'public', 'desktop');
+app.get(['/setup--download', '/setup--download/'], (_req, res) => {
+  res.sendFile(path.join(desktopPage, 'download.html'));
+});
+app.get(['/setup', '/setup/', '/manual', '/manual/'], (_req, res) => {
+  res.sendFile(path.join(desktopPage, 'manual.html'));
+});
+app.get(['/health', '/health/'], (_req, res) => {
+  res.sendFile(path.join(desktopPage, 'health.html'));
+});
+app.get('/WEOTT-Quote-Builder-Setup.exe', (_req, res) => {
+  res.download(path.join(__dirname, 'public', 'WEOTT-Quote-Builder-Setup.exe'), 'WEOTT-Quote-Builder-Setup.exe');
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/config', (_req, res) => res.json({
   publicKey: PAYSTACK_PUBLIC_KEY,
