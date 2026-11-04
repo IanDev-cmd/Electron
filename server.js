@@ -44,7 +44,9 @@ async function verifyAndFulfil(reference) {
   const tx = await paystack('GET', `/transaction/verify/${encodeURIComponent(reference)}`);
 
   if (tx.status !== 'success') { await store.setStatus(reference, tx.status); return { ...order, status: tx.status }; }
-  if (tx.amount !== PRICE_MINOR || tx.currency !== CURRENCY || tx.amount !== order.amount) {
+  const paidMinor = Number(tx.amount);
+  const paidCurrency = String(tx.currency || '').toUpperCase();
+  if (!Number.isInteger(paidMinor) || paidMinor !== PRICE_MINOR || paidCurrency !== String(CURRENCY).toUpperCase() || paidMinor !== Number(order.amount)) {
     await store.setStatus(reference, 'mismatch');
     throw new Error('Amount or currency mismatch');
   }
@@ -66,14 +68,55 @@ function rejectIfStarting(res) {
   return true;
 }
 
+function signaturesMatch(expected, given) {
+  if (!Buffer.isBuffer(expected) || !Buffer.isBuffer(given) || expected.length !== given.length) return false;
+  return crypto.timingSafeEqual(expected, given);
+}
+
+// Legacy header: HMAC-SHA512 of the raw body, keyed with the secret key.
+function legacyWebhookValid(rawBody, header) {
+  if (!Buffer.isBuffer(rawBody) || !/^[0-9a-f]{128}$/i.test(header || '')) return false;
+  const expected = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(rawBody).digest();
+  return signaturesMatch(expected, Buffer.from(header, 'hex'));
+}
+
+// Current header: Paystack-Signature t=unix,v1=whk_...:hex, keyed with whsec_...
+function modernWebhookValid(rawBody, header) {
+  const secret = process.env.PAYSTACK_WEBHOOK_SECRET;
+  if (!secret || !Buffer.isBuffer(rawBody) || typeof header !== 'string') return false;
+  let signedAt = null;
+  const signatures = [];
+  for (const part of header.split(',')) {
+    const splitAt = part.indexOf('=');
+    if (splitAt === -1) continue;
+    const key = part.slice(0, splitAt).trim();
+    const value = part.slice(splitAt + 1).trim();
+    if (key === 't') {
+      if (signedAt !== null || !/^[0-9]+$/.test(value)) return false;
+      signedAt = Number(value);
+    } else if (key === 'v1') {
+      const colon = value.indexOf(':');
+      if (colon !== -1) signatures.push(value.slice(colon + 1));
+    }
+  }
+  if (signedAt === null || !signatures.length) return false;
+  if (Math.abs(Math.floor(Date.now() / 1000) - signedAt) > 300) return false;
+  const expected = crypto.createHmac('sha512', secret).update(`${signedAt}.`).update(rawBody).digest();
+  return signatures.some(hex => /^[0-9a-f]{128}$/.test(hex) && signaturesMatch(expected, Buffer.from(hex, 'hex')));
+}
+
+function publicOrigin(req) {
+  const forwarded = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const proto = forwarded || req.protocol || 'https';
+  return `${proto}://${req.get('host')}`;
+}
+
 /* Webhook: raw body for the signature check, so it is registered before express.json() */
 app.post('/api/paystack/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   if (rejectIfStarting(res)) return;
-  const signature = req.get('x-paystack-signature') || '';
-  const expected = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(req.body).digest('hex');
-  const valid = signature.length === expected.length &&
-    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  if (!valid) return res.sendStatus(401);
+  const authentic = modernWebhookValid(req.body, req.get('paystack-signature'))
+    || legacyWebhookValid(req.body, req.get('x-paystack-signature'));
+  if (!authentic) return res.sendStatus(401);
 
   try {
     const event = JSON.parse(req.body.toString('utf8'));
@@ -104,12 +147,14 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     const billing = String(req.body.billing || '').trim().slice(0, 120);
     if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
     if (!name) return res.status(400).json({ error: 'Enter the cardholder name.' });
+    if (!billing) return res.status(400).json({ error: 'Select your billing country.' });
 
-    const reference = 'ORD_' + crypto.randomBytes(10).toString('hex');
+    const reference = 'ORD-' + crypto.randomBytes(10).toString('hex');
     await store.create({ reference, email, name, billing, amount: PRICE_MINOR, currency: CURRENCY });
 
     const data = await paystack('POST', '/transaction/initialize', {
       email, amount: PRICE_MINOR, currency: CURRENCY, reference,
+      callback_url: `${publicOrigin(req)}/`,
       channels: ['card'],
       metadata: {
         plan: PLAN, cardholder_name: name, billing_address: billing,
@@ -122,7 +167,8 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     res.json({ access_code: data.access_code, reference: data.reference });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ error: 'Could not start payment. Try again.' });
+    const leaked = /sk_live_|sk_test_|whsec_/i.test(err.message);
+    res.status(500).json({ error: leaked ? 'Could not start payment. Try again.' : (err.message || 'Could not start payment. Try again.') });
   }
 });
 
