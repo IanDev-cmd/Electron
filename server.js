@@ -87,7 +87,12 @@ app.post('/api/paystack/webhook', express.raw({ type: 'application/json' }), asy
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/api/config', (_req, res) => res.json({ publicKey: PAYSTACK_PUBLIC_KEY }));
+app.get('/api/config', (_req, res) => res.json({
+  publicKey: PAYSTACK_PUBLIC_KEY,
+  plan: PLAN,
+  currency: CURRENCY,
+  amount: PRICE_MINOR,
+}));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
