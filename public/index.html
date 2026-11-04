@@ -31,7 +31,7 @@
   .logo{position:absolute;top:16%;left:50%;transform:translateX(-50%);width:24px;height:24px;z-index:2}
   .plan{position:relative;z-index:2;background:#fff;color:#111;font-size:14px;padding:11px 0;border-radius:6px;width:80%;text-align:center}
   .plan b{font-weight:600}
-  .change{position:relative;z-index:2;font:400 10px Inter,sans-serif;color:#fff;background:none;border:0;cursor:pointer}
+  .change{position:relative;z-index:2;font:400 10px Inter,sans-serif;color:#fff;background:none;border:0}
 
   .side{display:flex;flex-direction:column;min-width:0}
   .inner{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;flex:1}
@@ -71,7 +71,7 @@
 
   @media (max-width:760px){
     .card{grid-template-columns:1fr;min-height:100vh;padding:0}
-    .visual{min-height:0;height:140px;border-radius:0;padding-bottom:14px}.logo{top:16px}.change{display:none}.plan{width:70%;padding:9px 0;font-size:13px}
+    .visual{min-height:0;height:140px;border-radius:0;padding-bottom:14px}.logo{top:16px}.plan{width:70%;padding:9px 0;font-size:13px}
     .side{padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px))}
     .topbar{margin-bottom:22px}
   }
@@ -82,7 +82,8 @@
   <aside class="visual">
     <svg class="logo" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2 2 22h6l4-9 4 9h6L12 2Z"/><path d="M12 2 9 8.5h6L12 2Z" fill="#cfd6ff"/></svg>
     <div class="plan">Kubertos™</div>
-    <button class="change" type="button">Change Plan</button>
+    <div class="plan">50$</div>
+    <p class="change">One time payment</p>
   </aside>
 
   <section class="side"><div class="inner">

@@ -6,8 +6,9 @@ const rateLimit = require('express-rate-limit');
 const store = require('./store');
 
 const { PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PORT = 3000 } = process.env;
-const CURRENCY = process.env.PAYSTACK_CURRENCY || 'USD';
-const PRICE_MINOR = parseInt(process.env.PRICE_MINOR || '5000', 10); // fixed price, server-side only
+// Settlement currency. Defaults to KES so an older PAYSTACK_CURRENCY=USD value does not keep charging dollars.
+const CURRENCY = (process.env.CHARGE_CURRENCY || 'KES').toUpperCase();
+const PRICE_MINOR = parseInt(process.env.PRICE_MINOR || '5000', 10); // $50.00 in US cents. Converted into CURRENCY at checkout.
 const PLAN = 'Kubertos';
 const PAYSTACK = 'https://api.paystack.co';
 
@@ -19,7 +20,24 @@ if (PAYSTACK_SECRET_KEY.startsWith('sk_live_') !== PAYSTACK_PUBLIC_KEY.startsWit
   console.error('Key mismatch: use either both live keys or both test keys.');
   process.exit(1);
 }
-console.log(`Paystack mode: ${PAYSTACK_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST'} | ${PRICE_MINOR / 100} ${CURRENCY}`);
+console.log(`Paystack mode: ${PAYSTACK_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST'} | $50 converted into ${CURRENCY}`);
+
+let rateCache = { at: 0, rates: null };
+
+async function priceInChargeCurrency() {
+  if (CURRENCY === 'USD') return { amount: PRICE_MINOR, currency: 'USD', usdCents: PRICE_MINOR, rate: 1 };
+  if (!rateCache.rates || Date.now() - rateCache.at > 10 * 60 * 1000) {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const json = await res.json();
+    if (!res.ok || json.result !== 'success' || !json.rates) throw new Error('Could not load the exchange rate.');
+    rateCache = { at: Date.now(), rates: json.rates };
+  }
+  const rate = Number(rateCache.rates[CURRENCY]);
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error(`Cannot price $50 in ${CURRENCY}.`);
+  const amount = Math.round((PRICE_MINOR / 100) * rate * 100);
+  if (!Number.isInteger(amount) || amount < 1) throw new Error('Converted amount is invalid.');
+  return { amount, currency: CURRENCY, usdCents: PRICE_MINOR, rate };
+}
 
 const app = express();
 app.set('trust proxy', 1); // behind Render's proxy: correct client IPs + HTTPS
@@ -46,7 +64,7 @@ async function verifyAndFulfil(reference) {
   if (tx.status !== 'success') { await store.setStatus(reference, tx.status); return { ...order, status: tx.status }; }
   const paidMinor = Number(tx.amount);
   const paidCurrency = String(tx.currency || '').toUpperCase();
-  if (!Number.isInteger(paidMinor) || paidMinor !== PRICE_MINOR || paidCurrency !== String(CURRENCY).toUpperCase() || paidMinor !== Number(order.amount)) {
+  if (!Number.isInteger(paidMinor) || paidMinor !== Number(order.amount) || paidCurrency !== String(order.currency || '').toUpperCase()) {
     await store.setStatus(reference, 'mismatch');
     throw new Error('Amount or currency mismatch');
   }
@@ -149,11 +167,13 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Enter the cardholder name.' });
     if (!billing) return res.status(400).json({ error: 'Select your billing country.' });
 
+    const quote = await priceInChargeCurrency();
+    console.log(`Charging ${quote.amount} ${quote.currency} cents for $50 at rate ${quote.rate}`);
     const reference = 'ORD-' + crypto.randomBytes(10).toString('hex');
-    await store.create({ reference, email, name, billing, amount: PRICE_MINOR, currency: CURRENCY });
+    await store.create({ reference, email, name, billing, amount: quote.amount, currency: quote.currency });
 
     const data = await paystack('POST', '/transaction/initialize', {
-      email, amount: PRICE_MINOR, currency: CURRENCY, reference,
+      email, amount: quote.amount, currency: quote.currency, reference,
       callback_url: `${publicOrigin(req)}/`,
       // Debit, credit, and virtual cards are all charged on the card channel.
       // card_brands lists every brand Paystack documents: Visa and Mastercard everywhere,
@@ -161,6 +181,7 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
       channels: ['card', 'apple_pay'],
       metadata: {
         plan: PLAN, cardholder_name: name, billing_address: billing,
+        usd_cents: quote.usdCents, fx_rate: quote.rate,
         custom_fields: [
           { display_name: 'Cardholder Name', variable_name: 'cardholder_name', value: name },
           { display_name: 'Billing Address', variable_name: 'billing_address', value: billing },

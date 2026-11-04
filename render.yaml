@@ -24,8 +24,8 @@ services:
         sync: false
       - key: PAYSTACK_WEBHOOK_SECRET
         sync: false
-      - key: PAYSTACK_CURRENCY
-        value: USD
+      - key: CHARGE_CURRENCY
+        value: KES
       - key: PRICE_MINOR
         value: "5000"
       - key: DATABASE_URL
