@@ -155,13 +155,19 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     const data = await paystack('POST', '/transaction/initialize', {
       email, amount: PRICE_MINOR, currency: CURRENCY, reference,
       callback_url: `${publicOrigin(req)}/`,
-      channels: ['card'],
+      // Debit, credit, and virtual cards are all charged on the card channel.
+      // card_brands lists every brand Paystack documents: Visa and Mastercard everywhere,
+      // Verve in Nigeria, Amex in Nigeria, Kenya, and South Africa. Apple Pay uses those cards.
+      channels: ['card', 'apple_pay'],
       metadata: {
         plan: PLAN, cardholder_name: name, billing_address: billing,
         custom_fields: [
           { display_name: 'Cardholder Name', variable_name: 'cardholder_name', value: name },
           { display_name: 'Billing Address', variable_name: 'billing_address', value: billing },
         ],
+        custom_filters: {
+          card_brands: ['visa', 'mastercard', 'verve', 'amex'],
+        },
       },
     });
     res.json({ access_code: data.access_code, reference: data.reference });
