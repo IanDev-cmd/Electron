@@ -7,7 +7,7 @@ services:
     runtime: node
     region: oregon
     plan: 0.5c-512mb
-    buildCommand: npm install
+    buildCommand: git lfs pull && npm install
     startCommand: npm start
     healthCheckPath: /healthz
     autoDeployTrigger: commit
