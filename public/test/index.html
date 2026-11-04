@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#161616;--line:#2b2b2d;--line-hi:#ececec;--text:#f5f5f5;--muted:#6f6f75;--label:#d9d9dc;--danger:#ff6b6b;--ok:#5ee0a0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+  /* The dark card IS the viewport: edge to edge, nothing around it */
+  .card{display:grid;grid-template-columns:minmax(230px,26%) 1fr;gap:clamp(20px,3vw,36px);width:100%;min-height:100vh;padding:clamp(18px,2.4vw,30px);background:var(--bg)}
+
+  .visual{position:relative;overflow:hidden;border-radius:10px;min-height:520px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:16px;padding-bottom:26px;
+    background:
+      radial-gradient(70% 28% at 50% 12%,#7a8cff 0%,transparent 70%),
+      radial-gradient(60% 30% at 20% 30%,#ff7aa8 0%,transparent 65%),
+      radial-gradient(60% 26% at 85% 38%,#ffb27a 0%,transparent 65%),
+      radial-gradient(55% 22% at 30% 55%,#52e3d0 0%,transparent 70%),
+      radial-gradient(60% 24% at 70% 70%,#ff8f9c 0%,transparent 70%),
+      radial-gradient(70% 20% at 40% 90%,#6a7bff 0%,transparent 70%),#2a2150}
+  .visual::before{content:"";position:absolute;inset:0;background:
+      repeating-conic-gradient(from 20deg at 42% 62%,rgba(255,255,255,.16) 0 4deg,rgba(0,0,0,.14) 4deg 9deg);
+      mix-blend-mode:overlay;filter:blur(1.2px)}
+  .visual::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 45% 18% at 42% 62%,rgba(255,255,255,.25),transparent 70%),linear-gradient(180deg,transparent 60%,rgba(0,0,0,.25))}
+  .logo{position:absolute;top:16%;left:50%;transform:translateX(-50%);width:24px;height:24px;z-index:2}
+  .plan{position:relative;z-index:2;background:#fff;color:#111;font-size:14px;padding:11px 0;border-radius:6px;width:80%;text-align:center}
+  .plan b{font-weight:600}
+  .change{position:relative;z-index:2;font:400 10px Inter,sans-serif;color:#fff;background:none;border:0}
+
+  .side{display:flex;flex-direction:column;min-width:0}
+  .inner{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;flex:1}
+  .topbar{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;margin-bottom:clamp(28px,6vh,56px)}
+  .topbar h2{font-size:13px;font-weight:400;text-align:center;color:#cfcfd3}
+  .ib{background:none;border:0;color:#8a8a90;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px}
+  .ib:hover{color:#fff}.ib:last-child{justify-self:end}
+  h1{font-size:18px;font-weight:500}
+  .sub{color:var(--muted);font-size:12.5px;margin:4px 0 22px}
+
+  .methods{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:26px}
+  .method{height:34px;border-radius:8px;border:1px solid #232325;background:transparent;color:#3d3d42;font:600 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;cursor:not-allowed}
+  .method.active{border-color:var(--line-hi);color:#fff;font-weight:500;font-size:11px;cursor:default}
+
+  label,.lbl{display:block;font-size:12.5px;color:var(--label);margin-bottom:8px}
+  .field{margin-bottom:18px;min-width:0}
+  .grid3{display:grid;grid-template-columns:1fr 78px 68px;gap:12px}
+  @media (min-width:900px){.grid3{grid-template-columns:1fr 128px 104px}}
+  .input{position:relative;display:flex;align-items:center;gap:10px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;transition:border-color .15s}
+  .input:focus-within{border-color:var(--line-hi)}
+  .input>svg,.input>.tag{flex:none;color:#55555b}
+  .tag{font-size:8px;font-weight:600}
+  .input input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:400 12.5px Inter,sans-serif}
+  .input input::placeholder{color:#8c8c92}
+  .input input[readonly]{cursor:pointer}
+  .select-show{flex:1;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .select-show.empty{color:var(--muted)}
+  .input select option{color:#111;background:#fff}
+  .input select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;color:#000}
+  .chev{margin-left:auto;color:#fff!important}
+
+  .msg{min-height:34px;font-size:12px;color:var(--danger);margin:-4px 0 6px;display:flex;align-items:center}
+  .msg.info{color:var(--muted)}.msg.ok{color:var(--ok)}
+  .pay{width:100%;height:36px;border:0;border-radius:8px;background:#fff;color:#111;font:600 12.5px Inter,sans-serif;cursor:pointer}
+  .pay:hover{opacity:.92}.pay:disabled{opacity:.55;cursor:wait}
+  .pay:focus-visible,.ib:focus-visible,.change:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+  @media (max-width:760px){
+    .card{grid-template-columns:1fr;min-height:100vh;padding:0}
+    .visual{min-height:0;height:140px;border-radius:0;padding-bottom:14px}.logo{top:16px}.plan{width:70%;padding:9px 0;font-size:13px}
+    .side{padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px))}
+    .topbar{margin-bottom:22px}
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <aside class="visual">
+    <svg class="logo" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2 2 22h6l4-9 4 9h6L12 2Z"/><path d="M12 2 9 8.5h6L12 2Z" fill="#cfd6ff"/></svg>
+    <div class="plan">Kubertos™</div>
+    <div class="plan">2$</div>
+    <p class="change">One time payment</p>
+  </aside>
+
+  <section class="side"><div class="inner">
+    <div class="topbar">
+      <button class="ib" type="button" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4M10 18l-6-6 6-6"/></svg></button>
+      <h2>Checkout</h2>
+      <button class="ib" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+
+    <h1>Payment Details</h1>
+    <p class="sub">Complete your purchase by add your payment information</p>
+
+    <div class="methods">
+      <button class="method active" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M3 4h18a1.5 1.5 0 0 1 1.5 1.5V9h-21V5.500A1.5 1.5 0 0 1 3 4Zm-1.5 7h21v7.500A1.5 1.5 0 0 1 21 20H3a1.5 1.5 0 0 1-1.5-1.5V11Zm3 4v2h5v-2h-5Z"/></svg>Credit Card</button>
+    </div>
+
+    <form id="payForm" novalidate>
+      <div class="grid3">
+        <div class="field">
+          <label for="cn">Card Number</label>
+          <div class="input"><span class="tag">123</span><input id="cn" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" maxlength="23" aria-describedby="msg"></div>
+        </div>
+        <div class="field">
+          <label for="ex">Expiry Date</label>
+          <div class="input"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm-2 8h14v10H5V10Z"/></svg><input id="ex" inputmode="numeric" autocomplete="cc-exp" placeholder="MM / YY" maxlength="7"></div>
+        </div>
+        <div class="field">
+          <label for="cv">CVC</label>
+          <div class="input"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></svg><input id="cv" inputmode="numeric" autocomplete="cc-csc" placeholder="CVC" maxlength="4"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="name">Cardholder Name</label>
+        <div class="input"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4.5"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7H4Z"/></svg>
+          <input id="name" name="name" autocomplete="cc-name" placeholder="Name on card" required></div>
+      </div>
+
+      <div class="field">
+        <label for="email">Email Address</label>
+        <div class="input"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required></div>
+      </div>
+
+      <div class="field">
+        <span class="lbl" id="bl">Billing Address</span>
+        <div class="input"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.500A2.5 2.5 0 1 1 12 6.500a2.5 2.5 0 0 1 0 5Z"/></svg>
+          <div class="select-show" id="bshow"></div>
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <select id="billing" aria-labelledby="bl" required>
+            <option value="" selected disabled>Select country</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="msg info" id="msg" role="alert" aria-live="polite"></div>
+      <button class="pay" id="payBtn" type="submit">Proceed Payment</button>
+    </form>
+  </div></section>
+</main>
+
+<script src="https://js.paystack.co/v2/inline.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const form = $('payForm'), btn = $('payBtn'), msg = $('msg'), sel = $('billing');
+  let config = null;
+
+  const say = (t, cls) => { msg.textContent = t || ''; msg.className = 'msg' + (cls ? ' ' + cls : ''); };
+  const busy = (on, label) => { btn.disabled = on; btn.textContent = label || 'Proceed Payment'; };
+
+  // Billing country: every ISO 3166-1 country/territory, names from the browser's own locale data
+  const CODES = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ ' +
+    'CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR ' +
+    'GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP ' +
+    'KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ ' +
+    'NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW ' +
+    'SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ ' +
+    'UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW').split(' ');
+  const names = new Intl.DisplayNames(['en'], { type: 'region' });
+  CODES.map(c => ({ c, n: names.of(c) })).filter(x => x.n && x.n !== x.c)
+    .sort((a, b) => a.n.localeCompare(b.n, 'en'))
+    .forEach(x => { const o = document.createElement('option'); o.value = x.n; o.textContent = x.n; o.dataset.code = x.c; sel.append(o); });
+
+  const paintBilling = () => {
+    const show = $('bshow');
+    show.textContent = sel.value || 'Select country';
+    show.classList.toggle('empty', !sel.value);
+  };
+  sel.addEventListener('change', paintBilling);
+  sel.addEventListener('input', paintBilling);
+  paintBilling();
+
+  const digits = (value) => value.replace(/\D/g, '');
+  $('cn').addEventListener('input', () => {
+    const grouped = digits($('cn').value).slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    $('cn').value = grouped;
+  });
+  $('ex').addEventListener('input', () => {
+    const raw = digits($('ex').value).slice(0, 4);
+    $('ex').value = raw.length > 2 ? raw.slice(0, 2) + ' / ' + raw.slice(2) : raw;
+  });
+  $('cv').addEventListener('input', () => { $('cv').value = digits($('cv').value).slice(0, 4); });
+
+  function luhn(num) {
+    let sum = 0, alt = false;
+    for (let i = num.length - 1; i >= 0; i--) {
+      let n = Number(num[i]);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n;
+      alt = !alt;
+    }
+    return num.length >= 13 && num.length <= 19 && sum % 10 === 0;
+  }
+  function expiryOk(value) {
+    const match = /^(\d{2})\s*\/\s*(\d{2})$/.exec(value);
+    if (!match) return false;
+    const month = Number(match[1]);
+    if (month < 1 || month > 12) return false;
+    return new Date(2000 + Number(match[2]), month, 1) > new Date();
+  }
+
+  async function confirmPayment(reference) {
+    busy(true, 'Confirming payment…');
+    try {
+      const v = await fetch('/api/paystack/verify/' + encodeURIComponent(reference));
+      const data = await v.json();
+      if (data.status === 'paid') { say('Payment confirmed. Reference ' + data.reference, 'ok'); busy(true, 'Payment complete'); return true; }
+      say('Payment not confirmed (' + (data.status || data.error) + ').');
+      busy(false);
+    } catch {
+      say('Could not confirm payment. Contact support with reference ' + reference + '.');
+      busy(false);
+    }
+    return false;
+  }
+
+  const returned = new URLSearchParams(location.search).get('reference') || new URLSearchParams(location.search).get('trxref');
+  if (returned) confirmPayment(returned);
+
+  fetch('/api/config').then(r => r.json()).then(c => { config = c; })
+    .catch(() => say('Could not load payment settings. Refresh and try again.'));
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); say('');
+    const name = $('name').value.trim(), email = $('email').value.trim();
+    const card = digits($('cn').value);
+    if (!luhn(card)) return say('Enter a valid card number.');
+    if (!expiryOk($('ex').value)) return say('Enter a valid expiry date as MM / YY.');
+    if (!/^\d{3,4}$/.test($('cv').value)) return say('Enter the 3 or 4 digit CVC.');
+    if (!name) return say('Enter the cardholder name.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) return say('Enter a valid email address.');
+    if (!sel.value) return say('Select your billing country.');
+    if (!config) return say('Payment settings are still loading. Try again.');
+    if (typeof PaystackPop !== 'function') return say('Payment form failed to load. Refresh and try again.');
+
+    busy(true, 'Starting payment…');
+    try {
+      const res = await fetch('/api/paystack/initialize-test', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, billing: sel.value + ' (' + sel.selectedOptions[0].dataset.code + ')' })
+      });
+      const init = await res.json();
+      if (!res.ok) throw new Error(init.error || 'Could not start payment.');
+
+      let settled = false;
+      const popup = new PaystackPop();
+      popup.resumeTransaction(init.access_code, {
+        onSuccess: async (tx) => { settled = true; await confirmPayment(tx.reference || init.reference); },
+        onCancel: () => { if (!settled) { say('Payment cancelled.'); busy(false); } },
+        onError: (err) => { if (!settled) { say((err && err.message) || 'Payment failed.'); busy(false); } },
+        onClose: () => { if (!settled) busy(false); }
+      });
+    } catch (err) { say(err.message); busy(false); }
+  });
+})();
+</script>
+</body>
+</html>

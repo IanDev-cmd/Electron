@@ -8,6 +8,7 @@ const store = require('./store');
 const { PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PORT = 3000 } = process.env;
 const CURRENCY = 'USD';
 const PRICE_MINOR = parseInt(process.env.PRICE_MINOR || '5000', 10); // 5000 cents = $50.00 USD. Always charged in USD.
+const TEST_PRICE_MINOR = 200; // 200 cents = $2.00 USD. Paystack's USD minimum. Only /test charges this.
 const PLAN = 'Kubertos';
 const PAYSTACK = 'https://api.paystack.co';
 
@@ -19,7 +20,7 @@ if (PAYSTACK_SECRET_KEY.startsWith('sk_live_') !== PAYSTACK_PUBLIC_KEY.startsWit
   console.error('Key mismatch: use either both live keys or both test keys.');
   process.exit(1);
 }
-console.log(`Paystack mode: ${PAYSTACK_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST'} | $50 USD`);
+console.log(`Paystack mode: ${PAYSTACK_SECRET_KEY.startsWith('sk_live_') ? 'LIVE' : 'TEST'} | $50 USD, /test is $2 USD`);
 
 const app = express();
 app.set('trust proxy', 1); // behind Render's proxy: correct client IPs + HTTPS
@@ -129,6 +130,9 @@ app.post('/api/paystack/webhook', express.raw({ type: 'application/json' }), asy
 });
 
 app.use(express.json({ limit: '10kb' }));
+app.get(['/test', '/test/'], (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test', 'index.html'));
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/config', (_req, res) => res.json({
   publicKey: PAYSTACK_PUBLIC_KEY,
@@ -139,7 +143,7 @@ app.get('/api/config', (_req, res) => res.json({
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
-app.post('/api/paystack/initialize', limiter, async (req, res) => {
+async function initializePayment(req, res, amount, callbackPath) {
   if (rejectIfStarting(res)) return;
   try {
     const email = String(req.body.email || '').trim();
@@ -150,17 +154,17 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     if (!billing) return res.status(400).json({ error: 'Select your billing country.' });
 
     const reference = 'ORD-' + crypto.randomBytes(10).toString('hex');
-    await store.create({ reference, email, name, billing, amount: PRICE_MINOR, currency: CURRENCY });
+    await store.create({ reference, email, name, billing, amount, currency: CURRENCY });
 
     const data = await paystack('POST', '/transaction/initialize', {
-      email, amount: PRICE_MINOR, currency: CURRENCY, reference,
-      callback_url: `${publicOrigin(req)}/`,
+      email, amount, currency: CURRENCY, reference,
+      callback_url: `${publicOrigin(req)}${callbackPath}`,
       // Debit, credit, and virtual cards are all charged on the card channel.
       // card_brands lists every brand Paystack documents: Visa and Mastercard everywhere,
       // Verve in Nigeria, Amex in Nigeria, Kenya, and South Africa. Apple Pay uses those cards.
       channels: ['card', 'apple_pay'],
       metadata: {
-        plan: PLAN, cardholder_name: name, billing_address: billing, usd_cents: PRICE_MINOR,
+        plan: PLAN, cardholder_name: name, billing_address: billing, usd_cents: amount,
         custom_fields: [
           { display_name: 'Cardholder Name', variable_name: 'cardholder_name', value: name },
           { display_name: 'Billing Address', variable_name: 'billing_address', value: billing },
@@ -176,7 +180,10 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
     const leaked = /sk_live_|sk_test_|whsec_/i.test(err.message);
     res.status(500).json({ error: leaked ? 'Could not start payment. Try again.' : (err.message || 'Could not start payment. Try again.') });
   }
-});
+}
+
+app.post('/api/paystack/initialize', limiter, (req, res) => initializePayment(req, res, PRICE_MINOR, '/'));
+app.post('/api/paystack/initialize-test', limiter, (req, res) => initializePayment(req, res, TEST_PRICE_MINOR, '/test'));
 
 app.get('/api/paystack/verify/:reference', limiter, async (req, res) => {
   if (rejectIfStarting(res)) return;
