@@ -1,0 +1,38 @@
+# Render Blueprint: always-on web service + Postgres in the same region.
+# Paid plans so Paystack webhooks are not dropped by free-tier spin-down.
+# Plan IDs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: electron
+    runtime: node
+    region: oregon
+    plan: 0.5c-512mb
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_CURRENCY
+        value: USD
+      - key: PRICE_MINOR
+        value: "5000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: electron-db
+          property: connectionString
+
+databases:
+  - name: electron-db
+    region: oregon
+    plan: 0.1c-256mb
+    postgresMajorVersion: "16"
+    databaseName: electron
+    user: electron
