@@ -16,6 +16,8 @@ services:
         value: production
       - key: NODE_VERSION
         value: "20"
+      - key: DATABASE_REGION
+        value: oregon
       - key: PAYSTACK_SECRET_KEY
         sync: false
       - key: PAYSTACK_PUBLIC_KEY

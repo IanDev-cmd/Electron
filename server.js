@@ -60,8 +60,15 @@ async function verifyAndFulfil(reference) {
 
 app.get('/healthz', (_req, res) => res.send('ok'));
 
+function rejectIfStarting(res) {
+  if (store.kind === 'memory' || store.ready) return false;
+  res.status(503).json({ error: 'Checkout is still connecting to its database. Try again shortly.' });
+  return true;
+}
+
 /* Webhook: raw body for the signature check, so it is registered before express.json() */
 app.post('/api/paystack/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  if (rejectIfStarting(res)) return;
   const signature = req.get('x-paystack-signature') || '';
   const expected = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(req.body).digest('hex');
   const valid = signature.length === expected.length &&
@@ -85,6 +92,7 @@ app.get('/api/config', (_req, res) => res.json({ publicKey: PAYSTACK_PUBLIC_KEY 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
 app.post('/api/paystack/initialize', limiter, async (req, res) => {
+  if (rejectIfStarting(res)) return;
   try {
     const email = String(req.body.email || '').trim();
     const name = String(req.body.name || '').trim().slice(0, 100);
@@ -114,6 +122,7 @@ app.post('/api/paystack/initialize', limiter, async (req, res) => {
 });
 
 app.get('/api/paystack/verify/:reference', limiter, async (req, res) => {
+  if (rejectIfStarting(res)) return;
   try {
     const order = await verifyAndFulfil(req.params.reference);
     res.json({ status: order.status, reference: req.params.reference });
@@ -121,5 +130,7 @@ app.get('/api/paystack/verify/:reference', limiter, async (req, res) => {
 });
 
 store.init().then(() => {
-  app.listen(PORT, () => console.log(`Checkout running on port ${PORT} (${store.kind} store)`));
+  console.log(`Store ready (${store.kind})`);
 }).catch(err => { console.error('Store init failed:', err.message); process.exit(1); });
+
+app.listen(PORT, '0.0.0.0', () => console.log(`Checkout listening on port ${PORT}`));
