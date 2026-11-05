@@ -138,6 +138,7 @@
           <p class="problem" id="problem" hidden></p>
         </div>
         <ul class="roster" id="roster"></ul>
+        <div id="downloads" style="margin-top:28px"></div>
       </div>
       <div class="coral-bar">
         Each open desktop app reports itself about every 30 seconds. A computer drops offline after it stops.
@@ -145,7 +146,6 @@
     </section>
   </main>
   <script>
-    const ENGINE = "https://weott-proposal-engine.onrender.com";
     let installs = [];
     let now = Date.now();
 
@@ -176,12 +176,14 @@
         const meta = document.createElement("p");
         meta.className = "meta";
         meta.textContent = [
-          item.platform,
-          item.appVersion,
-          (item.syncPercent || 0) + "% synced",
+          "UX " + (item.ux || "unknown"),
+          "engine " + (item.engine || "unknown"),
+          "database " + (item.databaseStatus || "unknown"),
           (item.quoteCount || 0) + " quotes",
           (item.proposalCount || 0) + " proposals",
-          item.status
+          item.lastSync ? "sync " + item.lastSync : "",
+          item.appVersion ? "v" + item.appVersion : "",
+          item.platform
         ].filter(Boolean).join(" · ");
         copy.append(name, meta);
         const side = document.createElement("div");
@@ -197,26 +199,61 @@
       }
     }
 
+    function renderDownloads(rows) {
+      const box = document.getElementById("downloads");
+      box.replaceChildren();
+      const title = document.createElement("p");
+      title.className = "eyebrow";
+      title.textContent = "Setup downloads";
+      box.append(title);
+      if (!rows.length) {
+        const empty = document.createElement("p");
+        empty.className = "summary";
+        empty.textContent = "No setup downloads yet.";
+        box.append(empty);
+        return;
+      }
+      const list = document.createElement("ul");
+      list.className = "roster";
+      for (const row of rows) {
+        const li = document.createElement("li");
+        const copy = document.createElement("div");
+        const name = document.createElement("p");
+        name.className = "name";
+        name.textContent = row.ip || "Unknown address";
+        const meta = document.createElement("p");
+        meta.className = "meta";
+        meta.textContent = ageLabel(row.downloaded_at);
+        copy.append(name, meta);
+        li.append(copy);
+        list.append(li);
+      }
+      box.append(list);
+    }
+
     async function load() {
       const problem = document.getElementById("problem");
       try {
-        const res = await fetch(ENGINE + "/desktop/fleet");
+        const res = await fetch("/api/desktop-health", { cache: "no-store" });
         if (!res.ok) throw new Error("fleet");
         const body = await res.json();
         const rows = Array.isArray(body.installs) ? body.installs.slice() : [];
         rows.sort((a, b) => Number(b.online) - Number(a.online) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
-        const computed = rows.length
-          ? Math.round((100 * rows.filter((row) => row.syncComplete || (row.syncPercent || 0) >= 100).length) / rows.length)
-          : 0;
-        const reported = typeof body.successPercent === "number" ? body.successPercent : 0;
         installs = rows;
-        document.getElementById("percent").textContent = Math.max(reported, computed) + "%";
+        document.getElementById("percent").textContent = (typeof body.successPercent === "number" ? body.successPercent : 0) + "%";
         problem.hidden = true;
         render();
       } catch (err) {
         problem.hidden = false;
         problem.textContent = "The live roster is not reachable yet.";
       }
+      try {
+        const res = await fetch("/api/downloads", { cache: "no-store" });
+        if (res.ok) {
+          const body = await res.json();
+          renderDownloads(Array.isArray(body.downloads) ? body.downloads : []);
+        }
+      } catch (err) {}
     }
 
     load();

@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const store = require('./store');
+const { notifyDownload } = require('./notify');
 
 const { PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, PORT = 3000 } = process.env;
 const CURRENCY = 'USD';
@@ -143,8 +144,92 @@ app.get(['/setup', '/setup/', '/manual', '/manual/'], (_req, res) => {
 app.get(['/health', '/health/'], (_req, res) => {
   res.sendFile(path.join(desktopPage, 'health.html'));
 });
-app.get('/WEOTT-Quote-Builder-Setup.exe', (_req, res) => {
-  res.download(path.join(__dirname, 'public', 'WEOTT-Quote-Builder-Setup.exe'), 'WEOTT-Quote-Builder-Setup.exe');
+
+function clientIp(req) {
+  const forwarded = String(req.get('x-forwarded-for') || '').split(',')[0].trim();
+  return forwarded || req.ip || '';
+}
+
+function healthView(row) {
+  const seen = new Date(row.last_seen || row.lastSeen || 0).getTime();
+  const online = Number.isFinite(seen) && Date.now() - seen <= 75_000;
+  return {
+    installId: row.install_id || row.installId,
+    computerName: row.computer_name || row.computerName || 'This computer',
+    appVersion: row.app_version || row.appVersion || '',
+    platform: row.platform || '',
+    ux: row.ux || 'unknown',
+    engine: row.engine || 'unknown',
+    quoteCount: Number(row.quote_count ?? row.quoteCount ?? 0),
+    proposalCount: Number(row.proposal_count ?? row.proposalCount ?? 0),
+    databaseStatus: row.database_status || row.databaseStatus || 'unknown',
+    lastSync: row.last_sync || row.lastSync || '',
+    status: row.status || 'unknown',
+    lastSeen: row.last_seen || row.lastSeen || '',
+    online,
+  };
+}
+
+app.get('/api/downloads', async (_req, res) => {
+  try {
+    res.json({ downloads: await store.listDownloads(40) });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not read downloads' });
+  }
+});
+
+app.get('/api/desktop-health', async (_req, res) => {
+  if (!store.ready) return res.json({ installs: [], successPercent: 0 });
+  try {
+    const installs = (await store.listHealth()).map(healthView);
+    installs.sort((a, b) => Number(b.online) - Number(a.online) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
+    const ready = installs.filter((item) => item.online && item.engine === 'ok' && item.databaseStatus === 'ok').length;
+    const successPercent = installs.length ? Math.round((100 * ready) / installs.length) : 0;
+    res.json({ installs, successPercent });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not read health' });
+  }
+});
+
+app.post('/api/desktop-health', async (req, res) => {
+  const installId = String((req.body && req.body.installId) || '').trim();
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(installId)) {
+    return res.status(400).json({ error: 'installId must be 8 to 80 letters, numbers, or dashes' });
+  }
+  const pulse = {
+    installId,
+    computerName: String((req.body && req.body.computerName) || 'This computer').slice(0, 80),
+    appVersion: String((req.body && req.body.appVersion) || '').slice(0, 40),
+    platform: String((req.body && req.body.platform) || '').slice(0, 40),
+    ux: String((req.body && req.body.ux) || 'unknown').slice(0, 40),
+    engine: String((req.body && req.body.engine) || 'unknown').slice(0, 40),
+    quoteCount: Math.max(0, Math.min(Number(req.body && req.body.quoteCount) || 0, 1_000_000)),
+    proposalCount: Math.max(0, Math.min(Number(req.body && req.body.proposalCount) || 0, 1_000_000)),
+    databaseStatus: String((req.body && req.body.databaseStatus) || 'unknown').slice(0, 40),
+    lastSync: String((req.body && req.body.lastSync) || '').slice(0, 120),
+    status: String((req.body && req.body.status) || 'ok').slice(0, 40),
+  };
+  try {
+    await store.recordHealth(pulse);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Could not save health' });
+  }
+});
+
+app.get('/WEOTT-Quote-Builder-Setup.exe', (req, res) => {
+  const file = path.join(__dirname, 'public', 'WEOTT-Quote-Builder-Setup.exe');
+  const ip = clientIp(req);
+  const userAgent = req.get('user-agent') || '';
+  const when = new Date().toISOString();
+  void store.recordDownload({ ip, userAgent, path: '/setup--download' })
+    .catch((err) => console.error(err.message));
+  void notifyDownload({ ip, userAgent, when, path: '/setup--download' })
+    .catch((err) => console.error(err.message));
+  res.download(file, 'WEOTT-Quote-Builder-Setup.exe');
 });
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/config', (_req, res) => res.json({
